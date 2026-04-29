@@ -524,11 +524,16 @@ function listenDB(){
     var sauces=data.sauces?Object.values(data.sauces):[];
     var logs=data.logs?Object.values(data.logs):[];
     state.clients=data.clients?Object.values(data.clients):[];
-    if(sauces.length===0){
+
+    // ★ 안전장치: DB 자체가 완전히 비어있을 때만 기본 소스 초기화
+    // sauces만 없고 logs나 clients가 있으면 절대 덮어쓰지 않음
+    if(sauces.length===0 && logs.length===0 && state.clients.length===0 && !data.sauces){
+      if(!confirm('소스 데이터가 없습니다. 기본 소스 목록으로 초기화할까요?\n(기존 데이터가 있다면 취소하세요)')) return;
       var obj={};
       DEFAULTS.forEach(function(name,i){var id='s'+(i+1);obj[id]={id:id,name:name,kg:0,stock:0,minStock:0,order:i};});
       db.ref('/sauces').set(obj); return;
     }
+
     state.sauces=sauces.sort(function(a,b){return (a.order||0)-(b.order||0);});
     state.logs=logs.sort(function(a,b){return (a.ts||0)-(b.ts||0);});
     render();
