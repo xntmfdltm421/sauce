@@ -120,6 +120,7 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
         <div class="card-title" style="margin:0">재고 실사 입력</div>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="text" placeholder="소스 검색..." style="width:150px;font-size:12px" oninput="invFilter=this.value;renderInvTable()">
+          <button onclick="printInventorySheet()" style="font-size:12px;background:#f5f5f0">🖨 실사표 인쇄</button>
           <button class="primary" onclick="saveAllInventory()" style="font-size:12px">전체 일괄 저장</button>
         </div>
       </div>
@@ -1807,6 +1808,57 @@ function startAutoBackupTimer(){
       showToast('✅ 오늘 백업 완료 (' + lastBackup + ')');
     }
   }, 3000);
+}
+
+// ── 실사표 인쇄 ──
+function printInventorySheet(){
+  var list = invFilter
+    ? state.sauces.filter(function(s){ return s.name.indexOf(invFilter) >= 0; })
+    : state.sauces.slice();
+
+  var rows = list.map(function(s, i){
+    return '<tr>'
+      + '<td style="padding:7px 10px;border:1px solid #ccc;font-size:13px">' + (i+1) + '</td>'
+      + '<td style="padding:7px 10px;border:1px solid #ccc;font-size:13px;font-weight:600">' + s.name + '</td>'
+      + '<td style="padding:7px 10px;border:1px solid #ccc;font-size:12px;color:#555;text-align:center">' + (s.kg ? s.kg + 'kg' : '-') + '</td>'
+      + '<td style="padding:7px 10px;border:1px solid #ccc;text-align:center;font-size:13px">' + (s.stock || 0) + '</td>'
+      + '<td style="padding:7px 10px;border:1px solid #ccc;min-width:70px"></td>'
+      + '<td style="padding:7px 10px;border:1px solid #ccc;min-width:70px"></td>'
+      + '</tr>';
+  }).join('');
+
+  var dateStr = today();
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<title>소스 재고 실사표 ' + dateStr + '</title>'
+    + '<style>'
+    + 'body{font-family:"Apple SD Gothic Neo","맑은 고딕",sans-serif;padding:20px;color:#1a1a1a}'
+    + 'h2{margin:0 0 4px;font-size:18px}'
+    + '.sub{font-size:12px;color:#888;margin-bottom:16px}'
+    + 'table{border-collapse:collapse;width:100%}'
+    + 'thead th{background:#1a1a1a;color:#fff;padding:8px 10px;font-size:12px;border:1px solid #1a1a1a;text-align:center}'
+    + 'tbody tr:nth-child(even){background:#f9f9f6}'
+    + '.sign{margin-top:30px;display:flex;gap:40px;font-size:13px}'
+    + '.sign-box{border:1px solid #ccc;padding:8px 20px 30px;border-radius:6px;min-width:120px}'
+    + '@media print{body{padding:10px}}'
+    + '</style></head><body>'
+    + '<h2>📋 소스 재고 실사표</h2>'
+    + '<div class="sub">실사일: ' + dateStr + ' &nbsp;|&nbsp; 총 ' + list.length + '개 품목</div>'
+    + '<table>'
+    + '<thead><tr><th>#</th><th style="text-align:left">소스명</th><th>팩당 중량</th><th>현재고(팩)</th><th>실사수량(팩)</th><th>비고</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table>'
+    + '<div class="sign">'
+    + '<div class="sign-box">실사자: </div>'
+    + '<div class="sign-box">확인자: </div>'
+    + '<div class="sign-box">날짜: ' + dateStr + '</div>'
+    + '</div>'
+    + '</body></html>';
+
+  var w = window.open('', '_blank', 'width=800,height=900');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 500);
 }
 
 window.addEventListener('load',function(){
