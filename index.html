@@ -654,52 +654,54 @@ function saveInv(id){
   });
 }
 function saveAllInventory(){
-  var list=state.sauces.filter(function(s){return s.name.indexOf(invFilter)>=0;});
+  var list = state.sauces.filter(function(s){ return s.name.indexOf(invFilter) >= 0; });
 
-  // ★ 핵심 수정: Firebase 저장 전에 모든 입력값을 먼저 한번에 수집
-  var toSave=[];
+  // ① DOM에서 값 전부 먼저 읽기
+  var toSave = [];
   list.forEach(function(s){
-    var inp=document.querySelector('.ii-input[data-id="'+s.id+'"]');
-    var kgInp=document.querySelector('.iw-input[data-id="'+s.id+'"]');
+    var inp   = document.querySelector('.ii-input[data-id="'+s.id+'"]');
+    var kgInp = document.querySelector('.iw-input[data-id="'+s.id+'"]');
     if(!inp) return;
-    var newVal=Number(inp.value);
-    var newKg=kgInp?parseFloat(kgInp.value)||s.kg||0:s.kg||0;
-    if(isNaN(newVal)||newVal<0) return;
-    // 재고 또는 kg 둘 중 하나라도 변경됐으면 저장
-    if(newVal===s.stock && newKg===s.kg) return;
-    toSave.push({s:s, newVal:newVal, newKg:newKg, diff:newVal-s.stock});
+    var newVal = Number(inp.value);
+    var newKg  = kgInp ? (parseFloat(kgInp.value) || s.kg || 0) : (s.kg || 0);
+    if(isNaN(newVal) || newVal < 0) return;
+    if(newVal === s.stock && newKg === (s.kg || 0)) return;
+    toSave.push({ sauce:s, newVal:newVal, newKg:newKg, diff:newVal - s.stock });
   });
 
-  if(toSave.length===0){
-    alert('변경된 항목이 없습니다.');
-    return;
-  }
+  if(toSave.length === 0){ alert('변경된 항목이 없습니다.'); return; }
 
-  // 저장 중 재렌더링 방지 플래그
-  var saving=true;
-  var promises=[];
-
+  // ② 단일 update() 호출로 한번에 전송 → Firebase 리스너 1회만 반응
+  var updates = {};
   toSave.forEach(function(item){
-    item.s.stock=item.newVal;
-    item.s.kg=item.newKg;
-    promises.push(dbSet(item.s));
-    if(item.diff!==0){
-      promises.push(dbLog({
-        date:today(),time:now(),name:item.s.name,
-        type:'실사',qty:item.diff,after:item.newVal,
-        kg:item.s.kg,client:'',note:'일괄 실사'
-      }));
+    var updated = {};
+    // 기존 소스 데이터 복사 후 수정
+    Object.keys(item.sauce).forEach(function(k){ updated[k] = item.sauce[k]; });
+    updated.stock = item.newVal;
+    updated.kg    = item.newKg;
+    updates['/sauces/' + item.sauce.id] = updated;
+
+    if(item.diff !== 0){
+      var logKey = db.ref('/logs').push().key;
+      updates['/logs/' + logKey] = {
+        ts:Date.now(), key:logKey,
+        date:today(), time:now(),
+        name:item.sauce.name, type:'실사',
+        qty:item.diff, after:item.newVal,
+        kg:item.newKg, client:'', note:'일괄 실사'
+      };
     }
   });
 
-  Promise.all(promises).then(function(){
-    saving=false;
-    alert(toSave.length+'개 소스 재고가 업데이트됐습니다.');
-    renderInvTable();
-  }).catch(function(err){
-    saving=false;
-    alert('저장 중 오류: '+err.message);
-  });
+  // ③ Firebase에 한방에 전송
+  db.ref('/').update(updates)
+    .then(function(){
+      invEditing = false;
+      alert('✅ '+toSave.length+'개 소스 재고 업데이트 완료!');
+    })
+    .catch(function(err){
+      alert('저장 오류: ' + err.message);
+    });
 }
 
 function getClients(){
