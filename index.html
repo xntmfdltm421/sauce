@@ -174,6 +174,37 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
   </div>
 
   <div id="sec-bulk" class="section">
+
+    <!-- 마켓봄 발주 캡처 -->
+    <div class="card" style="border:2px solid #7b1fa2;background:#fdf6ff">
+      <div class="top-bar" style="margin-bottom:10px">
+        <div>
+          <div class="card-title" style="margin:0;color:#7b1fa2">📸 마켓봄 발주 캡처 자동 입력 <span style="font-size:11px;font-weight:400;background:#7b1fa2;color:#fff;padding:2px 7px;border-radius:10px;margin-left:6px">AI</span></div>
+          <div style="font-size:12px;color:#888;margin-top:3px">마켓봄 발주 화면을 캡처해서 올리면 AI가 자동으로 읽어서 입력해드려요</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:#7b1fa2;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600">
+          📷 이미지 선택
+          <input type="file" id="mktbom-img" accept="image/*" style="display:none" onchange="previewMktBomImage(this)">
+        </label>
+        <button id="mktbom-parse-btn" onclick="parseMktBomImage()" style="font-size:13px;background:#7b1fa2;color:#fff;border-color:#7b1fa2;display:none">🤖 AI로 발주 읽기</button>
+        <button onclick="clearMktBom()" style="font-size:12px;display:none" id="mktbom-clear-btn">초기화</button>
+      </div>
+      <div id="mktbom-preview-wrap" style="display:none;margin-bottom:10px">
+        <img id="mktbom-preview-img" style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid #e0d0f0">
+      </div>
+      <div id="mktbom-status" style="font-size:12px;color:#7b1fa2;display:none;padding:8px 12px;background:#f3e5f5;border-radius:8px"></div>
+      <div id="mktbom-result" style="display:none;margin-top:10px">
+        <div style="font-size:12px;font-weight:600;color:#4a148c;margin-bottom:6px">📋 AI 파싱 결과 (수정 후 적용하세요)</div>
+        <textarea id="mktbom-result-text" rows="8" style="width:100%;border:1px solid #ce93d8;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button onclick="applyMktBomResult()" style="background:#7b1fa2;color:#fff;border-color:#7b1fa2;font-size:13px;font-weight:600">✅ 일괄출고 입력창에 적용</button>
+          <button onclick="document.getElementById('mktbom-result').style.display='none'" style="font-size:12px">닫기</button>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">일괄 출고 입력</div>
       <div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.8">
@@ -181,14 +212,31 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
         <code style="background:#f5f5f0;padding:2px 6px;border-radius:4px;font-size:11px">거래처명 소스명약칭1박스 소스명약칭2팩 ...</code><br>
         예) <code style="background:#f5f5f0;padding:2px 6px;border-radius:4px;font-size:11px">청감 양산범어 겉절이1박스 겨자1박스</code>
       </div>
-      <div class="form-grid2" style="margin-bottom:10px">
-        <div class="fg"><div class="fl">출고 날짜</div><input type="date" id="bulk-date"></div>
-        <div class="fg" style="justify-content:flex-end;flex-direction:row;align-items:flex-end;gap:8px">
-          <button class="primary" onclick="parseBulk()">파싱 미리보기</button>
-          <button onclick="document.getElementById('bulk-input').value='';document.getElementById('bulk-preview').style.display='none'" style="font-size:12px">초기화</button>
+
+      <!-- 추가 모드 상태 표시 -->
+      <div id="bulk-session-bar" style="display:none;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;color:#2e7d32;font-weight:600">
+          ➕ 추가 모드 — <span id="bulk-session-count">0</span>건 저장됨
+          <span style="font-size:11px;font-weight:400;color:#555;margin-left:6px">아침에 입력한 출고 + 지금 추가 입력이 합산됩니다</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="viewSavedBulk()" style="font-size:12px;background:#2e7d32;color:#fff;border-color:#2e7d32">📋 저장된 출고 보기</button>
+          <button onclick="clearSavedBulk()" style="font-size:12px;color:#c0392b;border-color:#e57373">🗑 초기화</button>
         </div>
       </div>
-      <textarea id="bulk-input" rows="12" placeholder="여기에 출고 내역을 붙여넣으세요...
+
+      <div class="form-grid2" style="margin-bottom:10px">
+        <div class="fg"><div class="fl">출고 날짜</div><input type="date" id="bulk-date"></div>
+        <div class="fg" style="justify-content:flex-end;flex-direction:row;align-items:flex-end;gap:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:6px 10px;border:1px solid #c8e6c9;border-radius:7px;background:#f1f8f3">
+            <input type="checkbox" id="bulk-append-mode" style="width:14px;height:14px;accent-color:#27ae60">
+            <span style="color:#27ae60;font-weight:600">➕ 기존 출고에 추가</span>
+          </label>
+          <button class="primary" onclick="parseBulk()">파싱 미리보기</button>
+          <button onclick="resetBulkAll()" style="font-size:12px">전체 초기화</button>
+        </div>
+      </div>
+      <textarea id="bulk-input" rows="8" placeholder="여기에 출고 내역을 붙여넣으세요...
 
 예시:
 청감 양산범어 겉절이1박스 겨자1박스
@@ -550,7 +598,22 @@ function switchTab(t){
   if(t==='report'){initReportFilters();renderReport();}
   else if(t==='adjust'){document.getElementById('adj-date').value=today();renderAdjLog();renderAdjSelect();}
   else if(t==='clients'){renderClients();}
-  else if(t==='bulk'){document.getElementById('bulk-date').value=today();}
+  else if(t==='bulk'){
+    document.getElementById('bulk-date').value=today();
+    // 저장된 세션 복원
+    if(bulkParsed.length === 0){
+      var saved = loadBulkSession();
+      if(saved && saved.rows && saved.rows.length > 0){
+        bulkParsed = saved.rows;
+        if(saved.date) document.getElementById('bulk-date').value = saved.date;
+      }
+    }
+    updateSessionBar();
+    if(bulkParsed.length > 0){
+      renderBulkPreviewTable();
+      document.getElementById('bulk-preview').style.display = 'block';
+    }
+  }
   else render();
 }
 
@@ -864,9 +927,15 @@ function moveDown(id){
   saveOrder();
 }
 function saveOrder(){
-  var promises=[];
-  state.sauces.forEach(function(s,i){s.order=i;promises.push(dbSet(s));});
-  Promise.all(promises).then(function(){renderSettings();renderDashTable();});
+  var updates = {};
+  state.sauces.forEach(function(s,i){
+    s.order = i;
+    updates['sauces/'+s.id] = s;
+  });
+  db.ref().update(updates).then(function(){
+    renderSettings();
+    renderDashTable();
+  });
 }
 function updateName(id,val){
   val=val.trim();
@@ -1491,35 +1560,147 @@ function renderBulkPreviewTable() {
   bindPickListBtns();
 }
 
+// ── 일괄출고 세션 저장 (localStorage) ──
+var BULK_SESSION_KEY = 'bulkSession';
+
+function saveBulkSession(){
+  try {
+    // sauce 객체는 id만 저장 (직렬화 간소화)
+    var slim = bulkParsed.map(function(row){
+      return {
+        client: row.client, clientRaw: row.clientRaw,
+        brand: row.brand, branch: row.branch,
+        items: row.items.map(function(it){
+          return { keyword:it.keyword, qty:it.qty, origQty:it.origQty,
+                   unit:it.unit, isBox:it.isBox, ppbUsed:it.ppbUsed,
+                   sauceId: it.sauce ? it.sauce.id : null };
+        })
+      };
+    });
+    localStorage.setItem(BULK_SESSION_KEY, JSON.stringify({ date: document.getElementById('bulk-date').value||today(), rows: slim }));
+  } catch(e){}
+}
+
+function loadBulkSession(){
+  try {
+    var saved = localStorage.getItem(BULK_SESSION_KEY);
+    if(!saved) return null;
+    var obj = JSON.parse(saved);
+    // sauce 객체 복원
+    obj.rows.forEach(function(row){
+      row.items.forEach(function(it){
+        it.sauce = it.sauceId ? byId(it.sauceId) : null;
+        it.clientObj = null;
+      });
+      row.clientObj = state.clients.find(function(c){ return c.name === row.client; }) || null;
+    });
+    return obj;
+  } catch(e){ return null; }
+}
+
+function updateSessionBar(){
+  var bar = document.getElementById('bulk-session-bar');
+  if(!bar) return;
+  if(bulkParsed.length > 0){
+    bar.style.display = 'flex';
+    var total = bulkParsed.reduce(function(s,r){ return s + r.items.length; }, 0);
+    document.getElementById('bulk-session-count').textContent = bulkParsed.length+'개 거래처 / '+total+'개 품목';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function viewSavedBulk(){
+  renderBulkPreviewTable();
+  document.getElementById('bulk-preview').style.display = 'block';
+  document.getElementById('bulk-preview').scrollIntoView({behavior:'smooth'});
+}
+
+function clearSavedBulk(){
+  if(!confirm('저장된 출고 데이터를 모두 초기화할까요?')) return;
+  bulkParsed = [];
+  localStorage.removeItem(BULK_SESSION_KEY);
+  document.getElementById('bulk-preview').style.display = 'none';
+  updateSessionBar();
+}
+
+function resetBulkAll(){
+  if(bulkParsed.length > 0){
+    if(!confirm('입력창과 저장된 출고 데이터를 모두 초기화할까요?')) return;
+  }
+  bulkParsed = [];
+  localStorage.removeItem(BULK_SESSION_KEY);
+  document.getElementById('bulk-input').value = '';
+  document.getElementById('bulk-preview').style.display = 'none';
+  document.getElementById('bulk-append-mode').checked = false;
+  updateSessionBar();
+}
+
 function parseBulk() {
   var text = document.getElementById('bulk-input').value;
+  var appendMode = document.getElementById('bulk-append-mode').checked;
   var lines = text.split('\n');
-  bulkParsed = [];
+  var newParsed = [];
   var warns = [];
+
   lines.forEach(function(line, i) {
     var result = parseLine(line);
     if(result) {
       result.items.forEach(function(item) {
         if(!item.sauce) warns.push((i+1)+'번줄: "'+item.keyword+'" 소스를 찾지 못했습니다');
       });
-      var resolved=resolveClient(result.client);
-      result.clientRaw=result.client;
-      result.client=resolved.name;
-      result.brand=resolved.brand;
-      result.branch=resolved.branch;
-      result.clientObj=resolved.clientObj;  // 거래처 객체 직접 연결 → 주소/전화 자동매칭용
-      bulkParsed.push(result);
+      var resolved = resolveClient(result.client);
+      result.clientRaw = result.client;
+      result.client    = resolved.name;
+      result.brand     = resolved.brand;
+      result.branch    = resolved.branch;
+      result.clientObj = resolved.clientObj;
+      newParsed.push(result);
     }
   });
 
-  if(bulkParsed.length === 0) {
+  if(newParsed.length === 0) {
     alert('파싱할 수 있는 내용이 없습니다.\n형식을 확인해주세요.');
     return;
   }
 
+  if(appendMode && bulkParsed.length > 0){
+    // 추가 모드: 같은 거래처면 품목 병합, 새 거래처면 추가
+    newParsed.forEach(function(newRow){
+      var existing = bulkParsed.find(function(r){ return r.client === newRow.client; });
+      if(existing){
+        // 같은 소스면 수량 합산, 없으면 추가
+        newRow.items.forEach(function(newItem){
+          var existItem = existing.items.find(function(it){
+            return it.sauce && newItem.sauce && it.sauce.id === newItem.sauce.id;
+          });
+          if(existItem){
+            existItem.qty     += newItem.qty;
+            existItem.origQty += newItem.origQty;
+          } else {
+            existing.items.push(newItem);
+          }
+        });
+      } else {
+        bulkParsed.push(newRow);
+      }
+    });
+    showToast('✅ '+newParsed.length+'건 추가됐어요! 총 '+bulkParsed.length+'개 거래처');
+  } else {
+    bulkParsed = newParsed;
+  }
+
+  // 세션 저장
+  saveBulkSession();
+  updateSessionBar();
+
   document.getElementById('bulk-warn').innerHTML = warns.length
     ? '⚠ 주의: ' + warns.join(' / ') + '<br>소스 매칭 실패 항목은 등록되지 않습니다.'
     : '';
+
+  // 추가 모드면 입력창만 비우기
+  if(appendMode) document.getElementById('bulk-input').value = '';
+
   renderBulkPreviewTable();
   document.getElementById('bulk-preview').style.display = 'block';
   document.getElementById('bulk-preview').scrollIntoView({behavior:'smooth'});
@@ -1527,34 +1708,49 @@ function parseBulk() {
 
 function submitBulk() {
   var date = document.getElementById('bulk-date').value || today();
-  var promises = [];
+  var updates = {};
   var cnt = 0;
   var skipped = 0;
 
   bulkParsed.forEach(function(row) {
     row.items.forEach(function(item) {
-      // 드롭다운에서 변경된 소스 반영
       var selEl = document.querySelector('.bulk-sauce-sel[data-row="'+bulkParsed.indexOf(row)+'"][data-item="'+row.items.indexOf(item)+'"]');
       if(selEl && selEl.value) item.sauce = byId(selEl.value);
       if(!item.sauce) { skipped++; return; }
       if(item.isBox && item.ppbUsed===-1 && (!item.sauce.packsPerBox)) { skipped++; return; }
       if(item.isBox && item.sauce.packsPerBox > 0) item.qty = item.origQty * item.sauce.packsPerBox;
       var s = byId(item.sauce.id);
-      if(s.stock < item.qty) { skipped++; return; }
+      if(!s || s.stock < item.qty) { skipped++; return; }
       s.stock -= item.qty;
       cnt++;
-      promises.push(dbSet(s));
-      promises.push(dbLog({date:date,time:now(),name:s.name,type:'출고',qty:-item.qty,after:s.stock,kg:s.kg,client:row.client,brand:row.brand||row.client,branch:row.branch||'',note:'일괄 출고'}));
+      // 소스 재고 업데이트 (같은 소스 여러 번 나와도 누적 반영)
+      updates['sauces/'+s.id] = JSON.parse(JSON.stringify(s));
+      // 이력 추가
+      var logKey = db.ref('logs').push().key;
+      updates['logs/'+logKey] = {
+        ts:Date.now(), key:logKey,
+        date:date, time:now(),
+        name:s.name, type:'출고',
+        qty:-item.qty, after:s.stock,
+        kg:s.kg, client:row.client,
+        brand:row.brand||row.client,
+        branch:row.branch||'', note:'일괄 출고'
+      };
     });
   });
 
   if(cnt === 0) { alert('등록할 항목이 없습니다.'); return; }
 
-  Promise.all(promises).then(function() {
+  db.ref().update(updates).then(function() {
     alert(cnt+'건 출고 등록 완료!' + (skipped>0?' ('+skipped+'건 건너뜀)':''));
+    bulkParsed = [];
+    localStorage.removeItem(BULK_SESSION_KEY);
     document.getElementById('bulk-input').value = '';
     document.getElementById('bulk-preview').style.display = 'none';
-    bulkParsed = [];
+    document.getElementById('bulk-append-mode').checked = false;
+    updateSessionBar();
+  }).catch(function(err){
+    alert('출고 등록 오류: ' + err.message);
   });
 }
 
@@ -1916,6 +2112,118 @@ function printInventorySheet(){
   w.document.close();
   w.focus();
   setTimeout(function(){ w.print(); }, 500);
+}
+
+// ── 마켓봄 발주 캡처 AI 파싱 ──
+var mktBomBase64 = '';
+var mktBomMime   = 'image/jpeg';
+
+function previewMktBomImage(input){
+  var file = input.files[0];
+  if(!file) return;
+  mktBomMime = file.type || 'image/jpeg';
+  var reader = new FileReader();
+  reader.onload = function(e){
+    mktBomBase64 = e.target.result.split(',')[1];
+    document.getElementById('mktbom-preview-img').src = e.target.result;
+    document.getElementById('mktbom-preview-wrap').style.display = 'block';
+    document.getElementById('mktbom-parse-btn').style.display  = 'inline-flex';
+    document.getElementById('mktbom-clear-btn').style.display  = 'inline-flex';
+    document.getElementById('mktbom-status').style.display     = 'none';
+    document.getElementById('mktbom-result').style.display     = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearMktBom(){
+  mktBomBase64 = '';
+  document.getElementById('mktbom-img').value = '';
+  document.getElementById('mktbom-preview-wrap').style.display = 'none';
+  document.getElementById('mktbom-parse-btn').style.display    = 'none';
+  document.getElementById('mktbom-clear-btn').style.display    = 'none';
+  document.getElementById('mktbom-status').style.display       = 'none';
+  document.getElementById('mktbom-result').style.display       = 'none';
+}
+
+async function parseMktBomImage(){
+  if(!mktBomBase64){ alert('이미지를 먼저 선택해주세요.'); return; }
+
+  var statusEl = document.getElementById('mktbom-status');
+  var btn      = document.getElementById('mktbom-parse-btn');
+  statusEl.style.display = 'block';
+  statusEl.textContent   = '🤖 AI가 발주 내용을 읽고 있어요... 잠시만요';
+  btn.disabled = true;
+
+  // 등록된 소스명·별칭 목록 전달 (매칭 정확도 향상)
+  var sauceList = state.sauces.map(function(s){
+    return s.name + (s.aliases ? '(별칭:'+s.aliases+')' : '');
+  }).join(', ');
+
+  var prompt = [
+    '아래는 마켓봄(B2B 식자재 발주 플랫폼) 발주 화면 캡처입니다.',
+    '이미지에서 발주 정보를 읽어서 다음 형식으로만 출력하세요:',
+    '',
+    '형식: 거래처명 소스명 수량팩 (또는 수량박스)',
+    '예시:',
+    '청감 양산범어 겉절이 2박스',
+    '삼백휴게실 익산점 바베큐 3팩',
+    '',
+    '규칙:',
+    '- 한 줄에 거래처 1개 + 상품들 (여러 상품이면 같은 줄에 이어서)',
+    '- 단위는 반드시 "팩" 또는 "박스"로',
+    '- 수량이 박스 단위면 박스, 낱개/팩 단위면 팩으로',
+    '- 등록된 소스 목록: ' + sauceList,
+    '- 소스명은 등록된 소스와 최대한 일치하게 작성',
+    '- 발주 정보 외 다른 설명은 절대 쓰지 말 것',
+    '- 발주 내역이 없으면 "발주 없음"만 출력',
+  ].join('\n');
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mktBomMime, data: mktBomBase64 } },
+            { type: 'text',  text: prompt }
+          ]
+        }]
+      })
+    });
+
+    var data = await resp.json();
+    if(data.error){ throw new Error(data.error.message); }
+
+    var text = (data.content || []).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('');
+    text = text.trim();
+
+    if(!text || text === '발주 없음'){
+      statusEl.textContent = '⚠ 발주 내용을 찾지 못했어요. 다른 캡처로 다시 시도해보세요.';
+    } else {
+      statusEl.textContent = '✅ AI 파싱 완료! 아래 내용을 확인·수정 후 적용하세요.';
+      document.getElementById('mktbom-result-text').value = text;
+      document.getElementById('mktbom-result').style.display = 'block';
+    }
+  } catch(err) {
+    statusEl.textContent = '❌ 오류: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function applyMktBomResult(){
+  var text = document.getElementById('mktbom-result-text').value.trim();
+  if(!text){ alert('적용할 내용이 없습니다.'); return; }
+  var existing = document.getElementById('bulk-input').value.trim();
+  document.getElementById('bulk-input').value = existing ? existing + '\n' + text : text;
+  document.getElementById('mktbom-result').style.display = 'none';
+  document.getElementById('mktbom-status').textContent = '✅ 일괄출고 입력창에 적용됐어요! 아래에서 파싱 미리보기를 눌러주세요.';
+  // 일괄출고 입력창으로 스크롤
+  document.getElementById('bulk-input').scrollIntoView({ behavior:'smooth' });
 }
 
 window.addEventListener('load',function(){
