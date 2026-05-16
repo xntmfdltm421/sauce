@@ -520,14 +520,13 @@ function listenDB(){
   var t=setTimeout(function(){ showErr('응답 없음. Firebase 규칙에서 읽기/쓰기를 허용해주세요.'); },8000);
   db.ref('/').on('value',function(snap){
     clearTimeout(t);
+    if(dbPaused) return; // ★ 저장 중이면 리스너 완전 무시
     var ld=document.getElementById('loading');ld.style.display='none';ld.style.pointerEvents='none';
     var data=snap.val()||{};
     var sauces=data.sauces?Object.values(data.sauces):[];
     var logs=data.logs?Object.values(data.logs):[];
     state.clients=data.clients?Object.values(data.clients):[];
 
-    // ★ 안전장치: DB 자체가 완전히 비어있을 때만 기본 소스 초기화
-    // sauces만 없고 logs나 clients가 있으면 절대 덮어쓰지 않음
     if(sauces.length===0 && logs.length===0 && state.clients.length===0 && !data.sauces){
       if(!confirm('소스 데이터가 없습니다. 기본 소스 목록으로 초기화할까요?\n(기존 데이터가 있다면 취소하세요)')) return;
       var obj={};
@@ -653,10 +652,12 @@ function saveInv(id){
     var el=document.getElementById('idiff'+id);if(el){el.textContent='저장됨';el.style.color='#27ae60';}
   });
 }
+var dbPaused = false; // 저장 중 리스너 무시 플래그
+
 function saveAllInventory(){
   var list = state.sauces.filter(function(s){ return s.name.indexOf(invFilter) >= 0; });
 
-  // ① DOM에서 값 전부 먼저 읽기
+  // ① DOM 값 전부 먼저 수집
   var toSave = [];
   list.forEach(function(s){
     var inp   = document.querySelector('.ii-input[data-id="'+s.id+'"]');
@@ -666,40 +667,51 @@ function saveAllInventory(){
     var newKg  = kgInp ? (parseFloat(kgInp.value) || s.kg || 0) : (s.kg || 0);
     if(isNaN(newVal) || newVal < 0) return;
     if(newVal === s.stock && newKg === (s.kg || 0)) return;
-    toSave.push({ sauce:s, newVal:newVal, newKg:newKg, diff:newVal - s.stock });
+    toSave.push({ sauce: JSON.parse(JSON.stringify(s)), newVal: newVal, newKg: newKg, diff: newVal - s.stock });
   });
 
   if(toSave.length === 0){ alert('변경된 항목이 없습니다.'); return; }
 
-  // ② 단일 update() 호출로 한번에 전송 → Firebase 리스너 1회만 반응
+  // ② 저장 중 리스너 차단
+  dbPaused = true;
+  invEditing = true;
+
+  // ③ 경로에 앞 슬래시 없이 단일 update() 호출 (Firebase 규칙)
   var updates = {};
   toSave.forEach(function(item){
-    var updated = {};
-    // 기존 소스 데이터 복사 후 수정
-    Object.keys(item.sauce).forEach(function(k){ updated[k] = item.sauce[k]; });
+    var updated = item.sauce;
     updated.stock = item.newVal;
     updated.kg    = item.newKg;
-    updates['/sauces/' + item.sauce.id] = updated;
+    updates['sauces/' + item.sauce.id] = updated;  // ← 슬래시 없음
 
     if(item.diff !== 0){
-      var logKey = db.ref('/logs').push().key;
-      updates['/logs/' + logKey] = {
-        ts:Date.now(), key:logKey,
-        date:today(), time:now(),
-        name:item.sauce.name, type:'실사',
-        qty:item.diff, after:item.newVal,
-        kg:item.newKg, client:'', note:'일괄 실사'
+      var logKey = db.ref('logs').push().key;
+      updates['logs/' + logKey] = {          // ← 슬래시 없음
+        ts: Date.now(), key: logKey,
+        date: today(), time: now(),
+        name: item.sauce.name, type: '실사',
+        qty: item.diff, after: item.newVal,
+        kg: item.newKg, client: '', note: '일괄 실사'
       };
     }
   });
 
-  // ③ Firebase에 한방에 전송
-  db.ref('/').update(updates)
+  // ④ 단일 전송
+  db.ref().update(updates)
     .then(function(){
+      dbPaused  = false;
       invEditing = false;
       alert('✅ '+toSave.length+'개 소스 재고 업데이트 완료!');
+      // 수동으로 state 갱신 후 테이블 새로고침
+      toSave.forEach(function(item){
+        var s = state.sauces.find(function(x){ return x.id === item.sauce.id; });
+        if(s){ s.stock = item.newVal; s.kg = item.newKg; }
+      });
+      renderInvTable();
     })
     .catch(function(err){
+      dbPaused  = false;
+      invEditing = false;
       alert('저장 오류: ' + err.message);
     });
 }
