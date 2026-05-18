@@ -180,7 +180,7 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
       <div class="top-bar" style="margin-bottom:10px">
         <div>
           <div class="card-title" style="margin:0;color:#7b1fa2">📸 마켓봄 발주 캡처 자동 입력 <span style="font-size:11px;font-weight:400;background:#7b1fa2;color:#fff;padding:2px 7px;border-radius:10px;margin-left:6px">AI</span></div>
-          <div style="font-size:12px;color:#888;margin-top:3px">마켓봄 화면 캡처 후 아래 영역에 <strong>Ctrl+V</strong> (붙여넣기) 하세요</div>
+          <div style="font-size:12px;color:#888;margin-top:3px">마켓봄 발주 목록 캡처 후 아래 영역에 <strong>Ctrl+V</strong> — <span style="color:#7b1fa2;font-weight:600">매출확정(Y) 건만 자동 추출</span>해요</div>
         </div>
         <div style="display:flex;gap:8px">
           <button id="mktbom-parse-btn" onclick="parseMktBomImage()" style="font-size:13px;background:#7b1fa2;color:#fff;border-color:#7b1fa2;display:none">🤖 AI로 발주 읽기</button>
@@ -2291,22 +2291,34 @@ async function parseMktBomImage(){
   }).join(', ');
 
   var prompt = [
-    '아래는 마켓봄(B2B 식자재 발주 플랫폼) 발주 화면 캡처입니다.',
-    '이미지에서 발주 정보를 읽어서 다음 형식으로만 출력하세요:',
+    '아래는 마켓봄(B2B 식자재 발주 플랫폼) 발주 목록 화면 캡처입니다.',
     '',
-    '형식: 거래처명 소스명 수량팩 (또는 수량박스)',
-    '예시:',
-    '청감 양산범어 겉절이 2박스',
-    '삼백휴게실 익산점 바베큐 3팩',
+    '다음 규칙에 따라 출고 내역을 추출하세요:',
     '',
-    '규칙:',
-    '- 한 줄에 거래처 1개 + 상품들 (여러 상품이면 같은 줄에 이어서)',
-    '- 단위는 반드시 "팩" 또는 "박스"로',
-    '- 수량이 박스 단위면 박스, 낱개/팩 단위면 팩으로',
-    '- 등록된 소스 목록: ' + sauceList,
-    '- 소스명은 등록된 소스와 최대한 일치하게 작성',
-    '- 발주 정보 외 다른 설명은 절대 쓰지 말 것',
-    '- 발주 내역이 없으면 "발주 없음"만 출력',
+    '【추출 조건】',
+    '- "매출확정" 컬럼이 Y인 행만 추출 (N이면 제외)',
+    '- 소계/합계 행은 무시',
+    '',
+    '【추출 항목】',
+    '- 거래처명 (브랜드명 제외, 거래처명 컬럼 기준)',
+    '- 상품명',
+    '- 확정수량 (주문수량 아닌 확정수량 기준)',
+    '- 단위 (box→박스, ea/팩→팩)',
+    '',
+    '【출력 형식】 — 이것만 출력, 설명 없이',
+    '거래처명 상품명 확정수량박스',
+    '거래처명 상품명 확정수량팩',
+    '',
+    '【예시】',
+    '청년감자탕 독산역점 겉절이양념 1박스',
+    '88냉삼 영등포공청직영점 88냉삼 고추장소스 1박스',
+    '',
+    '【주의사항】',
+    '- 같은 거래처에 여러 상품이면 한 줄에 이어서 쓰기',
+    '  예) 청년감자탕 독산역점 겉절이양념 1박스 겨자소스 2박스',
+    '- 등록된 소스 목록 참고: ' + sauceList,
+    '- 상품명은 등록된 소스명과 최대한 가깝게',
+    '- 매출확정 Y인 행이 없으면 "매출확정 건 없음"만 출력',
   ].join('\n');
 
   try {
@@ -2332,8 +2344,8 @@ async function parseMktBomImage(){
     var text = (data.content || []).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('');
     text = text.trim();
 
-    if(!text || text === '발주 없음'){
-      statusEl.textContent = '⚠ 발주 내용을 찾지 못했어요. 다른 캡처로 다시 시도해보세요.';
+    if(!text || text === '발주 없음' || text === '매출확정 건 없음'){
+      statusEl.textContent = '⚠ 매출확정(Y) 건을 찾지 못했어요. 캡처 화면을 확인해주세요.';
     } else {
       statusEl.textContent = '✅ AI 파싱 완료! 아래 내용을 확인·수정 후 적용하세요.';
       document.getElementById('mktbom-result-text').value = text;
