@@ -87,7 +87,8 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
+    <button class="tab active" onclick="switchTab('flow')">📅 업무 플로우</button>
+    <button class="tab" onclick="switchTab('dashboard')">대시보드</button>
     <button class="tab" onclick="switchTab('inventory')">재고 실사</button>
     <button class="tab" onclick="switchTab('produce')">생산·입고</button>
     <button class="tab" onclick="switchTab('ship')">출고</button>
@@ -99,7 +100,116 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
     <button class="tab" onclick="switchTab('clients')">거래처 관리</button>
   </div>
 
-  <div id="sec-dashboard" class="section active">
+  <!-- ══ 업무 플로우 탭 ══ -->
+  <div id="sec-flow" class="section active">
+    <div class="card" style="padding:0;overflow:hidden;border:0.5px solid #555">
+
+      <!-- 헤더 -->
+      <div style="background:#1a2f1e;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <span style="font-size:15px;font-weight:500;color:#e8f5e9">업무 플로우</span>
+          <div style="display:flex;align-items:center;gap:7px">
+            <button onclick="flowChM(-1)" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px;color:#c8e6c9">◀</button>
+            <span id="flow-month-lbl" style="font-size:14px;font-weight:500;color:#fff;min-width:110px;text-align:center"></span>
+            <button onclick="flowChM(1)" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px;color:#c8e6c9">▶</button>
+            <button onclick="flowGoToday()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 11px;cursor:pointer;font-size:12px;color:#a5d6a7">오늘</button>
+          </div>
+        </div>
+        <button onclick="flowOpenModal(null)" style="background:#2d6a4f;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-size:13px;color:#fff">+ 일정 추가</button>
+      </div>
+
+      <!-- 메트릭 -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:0.5px solid #d0d0d0">
+        <div style="padding:10px 16px;border-right:0.5px solid #d0d0d0">
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">이번달 생산계획</div>
+          <div id="fl-m-prod" style="font-size:22px;font-weight:500;color:var(--color-text-primary)">0</div>
+          <div style="font-size:11px;color:var(--color-text-secondary)">건 등록</div>
+        </div>
+        <div style="padding:10px 16px;border-right:0.5px solid #d0d0d0">
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">초도물량</div>
+          <div id="fl-m-init" style="font-size:22px;font-weight:500;color:var(--color-text-primary)">0</div>
+          <div style="font-size:11px;color:var(--color-text-secondary)">건 예정</div>
+        </div>
+        <div style="padding:10px 16px;border-right:0.5px solid #d0d0d0">
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">D-3 이내 임박</div>
+          <div id="fl-m-soon" style="font-size:22px;font-weight:500;color:#e53935">0</div>
+          <div style="font-size:11px;color:var(--color-text-secondary)">건</div>
+        </div>
+        <div style="padding:10px 16px">
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">전체 일정</div>
+          <div id="fl-m-total" style="font-size:22px;font-weight:500;color:var(--color-text-primary)">0</div>
+          <div style="font-size:11px;color:var(--color-text-secondary)">이번달</div>
+        </div>
+      </div>
+
+      <!-- 달력 + 사이드 -->
+      <div style="display:grid;grid-template-columns:1fr 200px;border-bottom:none">
+
+        <!-- 칠판 달력 -->
+        <div style="background:#1e3320;padding:14px;position:relative" id="flow-cal-outer">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:5px">
+            <div style="text-align:center;font-size:11px;color:#ef9a9a;padding:5px 0;font-weight:500">일</div>
+            <div style="text-align:center;font-size:11px;color:#81c784;padding:5px 0;font-weight:500">월</div>
+            <div style="text-align:center;font-size:11px;color:#81c784;padding:5px 0;font-weight:500">화</div>
+            <div style="text-align:center;font-size:11px;color:#81c784;padding:5px 0;font-weight:500">수</div>
+            <div style="text-align:center;font-size:11px;color:#81c784;padding:5px 0;font-weight:500">목</div>
+            <div style="text-align:center;font-size:11px;color:#81c784;padding:5px 0;font-weight:500">금</div>
+            <div style="text-align:center;font-size:11px;color:#90caf9;padding:5px 0;font-weight:500">토</div>
+          </div>
+          <div id="flow-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px"></div>
+
+          <!-- 일정 추가/수정 팝업 -->
+          <div id="flow-modal-bg" style="position:absolute;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:20;border-radius:0">
+            <div style="background:var(--color-background-primary);border-radius:10px;border:0.5px solid var(--color-border-secondary);padding:22px;width:290px">
+              <div style="font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:16px" id="flow-modal-title">일정 추가</div>
+              <div style="margin-bottom:11px">
+                <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:5px">유형</div>
+                <div style="display:flex;gap:6px">
+                  <div id="fl-tb-prod" class="fl-type-btn fl-active-prod" onclick="flowSelType('prod')" style="flex:1;padding:7px;border-radius:6px;border:1px solid #2196f3;cursor:pointer;font-size:12px;text-align:center;background:#e3f2fd;color:#1565c0">생산계획</div>
+                  <div id="fl-tb-init" class="fl-type-btn" onclick="flowSelType('init')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--color-border-secondary);cursor:pointer;font-size:12px;text-align:center;background:var(--color-background-secondary);color:var(--color-text-secondary)">초도물량</div>
+                  <div id="fl-tb-memo" class="fl-type-btn" onclick="flowSelType('memo')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--color-border-secondary);cursor:pointer;font-size:12px;text-align:center;background:var(--color-background-secondary);color:var(--color-text-secondary)">메모</div>
+                </div>
+              </div>
+              <div style="margin-bottom:11px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">날짜</div><input type="date" id="fl-p-date" style="width:100%;font-size:13px"></div>
+              <div style="margin-bottom:11px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">소스 / 거래처</div><input type="text" id="fl-p-client" placeholder="예: 청감 양산범어점" style="width:100%;font-size:13px"></div>
+              <div style="margin-bottom:11px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">내용</div><input type="text" id="fl-p-title" placeholder="예: 겉절이소스 100팩 생산" style="width:100%;font-size:13px"></div>
+              <div style="margin-bottom:11px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">메모</div><textarea id="fl-p-note" placeholder="추가 메모..." style="width:100%;font-size:13px;resize:none;height:56px"></textarea></div>
+              <div style="display:flex;gap:8px">
+                <button onclick="flowCloseModal()" style="flex:1;padding:8px;border-radius:6px;font-size:13px;cursor:pointer;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary)">취소</button>
+                <button onclick="flowSaveEv()" style="flex:1;padding:8px;border-radius:6px;font-size:13px;cursor:pointer;background:#1a2f1e;border:none;color:#fff">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 사이드 -->
+        <div style="background:var(--color-background-secondary);border-left:0.5px solid #d0d0d0;display:flex;flex-direction:column">
+          <!-- 범례 -->
+          <div style="padding:12px;border-bottom:0.5px solid var(--color-border-tertiary)">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:0.5px;margin-bottom:10px">구분</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-text-primary);margin-bottom:6px"><div style="width:12px;height:12px;border-radius:2px;background:#2196f3;flex-shrink:0"></div>생산계획</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-text-primary);margin-bottom:6px"><div style="width:12px;height:12px;border-radius:2px;background:#ef5350;flex-shrink:0"></div>초도물량</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-text-primary)"><div style="width:12px;height:12px;border-radius:2px;background:#9c27b0;flex-shrink:0"></div>메모</div>
+          </div>
+          <!-- 선택된 날 -->
+          <div style="padding:12px;border-bottom:0.5px solid var(--color-border-tertiary);flex:1;overflow-y:auto">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:0.5px;margin-bottom:8px">선택한 날 일정</div>
+            <div id="fl-sel-label" style="font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px">날짜를 클릭하세요</div>
+            <div id="fl-sel-list"></div>
+            <button id="fl-sel-add-btn" style="display:none;width:100%;margin-top:8px;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;border:0.5px dashed var(--color-border-secondary);background:transparent;color:var(--color-text-secondary)" onclick="flowOpenModal(flowSelDate)">+ 이 날 일정 추가</button>
+          </div>
+          <!-- 다가오는 일정 -->
+          <div style="padding:12px;max-height:220px;overflow-y:auto">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:0.5px;margin-bottom:8px">다가오는 일정 (14일)</div>
+            <div id="fl-upcoming-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 대시보드 탭 ══ -->
+  <div id="sec-dashboard" class="section">
     <div class="grid4" id="metrics"></div>
     <div id="low-stock-alert"></div>
     <div class="card">
@@ -363,8 +473,9 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
     <div class="card">
       <div class="top-bar">
         <div class="card-title" style="margin:0">전체 이력</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select id="log-sauce" onchange="renderLog()" style="width:148px;font-size:12px"><option value="">전체 소스</option></select>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input type="text" id="log-search" placeholder="🔍 소스명·거래처 검색..." oninput="renderLog()" style="width:170px;font-size:12px">
+          <select id="log-sauce" onchange="renderLog()" style="width:130px;font-size:12px"><option value="">전체 소스</option></select>
           <select id="log-type" onchange="renderLog()" style="width:88px;font-size:12px">
             <option value="">전체</option><option value="실사">실사</option><option value="생산">생산</option><option value="구매입고">구매입고</option><option value="출고">출고</option>
             <option value="폐기">폐기</option><option value="불량반품">불량반품</option><option value="샘플사용">샘플사용</option>
@@ -374,6 +485,7 @@ button.danger-btn{color:#c0392b;border-color:#e57373}
           <button onclick="clearLog()" style="font-size:12px">초기화</button>
         </div>
       </div>
+      <div id="log-search-result" style="display:none;font-size:12px;color:#1565c0;padding:6px 2px;margin-bottom:4px"></div>
       <div class="scroll-table">
         <table><thead><tr><th>날짜</th><th>시간</th><th>소스명</th><th>구분</th><th>거래처</th><th>변동(팩)</th><th>총 중량(kg)</th><th>재고후(팩)</th><th>메모</th><th>수정</th></tr></thead>
         <tbody id="log-table"></tbody></table>
@@ -572,30 +684,23 @@ function listenDB(){
 }
 
 function switchTab(t){
-  var tabs=['dashboard','inventory','produce','ship','bulk','adjust','report','log','settings','clients'];
+  var tabs=['flow','dashboard','inventory','produce','ship','bulk','adjust','report','log','settings','clients'];
   document.querySelectorAll('.tab').forEach(function(el,i){el.classList.toggle('active',tabs[i]===t);});
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
   document.getElementById('sec-'+t).classList.add('active');
-  // 실사 탭 벗어나면 편집 플래그 초기화
   if(t!=='inventory') invEditing=false;
   if(t==='report'){initReportFilters();renderReport();}
   else if(t==='adjust'){document.getElementById('adj-date').value=today();renderAdjLog();renderAdjSelect();}
   else if(t==='clients'){renderClients();}
+  else if(t==='flow'){flowRender();}
   else if(t==='bulk'){
     document.getElementById('bulk-date').value=today();
-    // 저장된 세션 복원
-    if(bulkParsed.length === 0){
-      var saved = loadBulkSession();
-      if(saved && saved.rows && saved.rows.length > 0){
-        bulkParsed = saved.rows;
-        if(saved.date) document.getElementById('bulk-date').value = saved.date;
-      }
+    if(bulkParsed.length===0){
+      var saved=loadBulkSession();
+      if(saved&&saved.rows&&saved.rows.length>0){bulkParsed=saved.rows;if(saved.date)document.getElementById('bulk-date').value=saved.date;}
     }
     updateSessionBar();
-    if(bulkParsed.length > 0){
-      renderBulkPreviewTable();
-      document.getElementById('bulk-preview').style.display = 'block';
-    }
+    if(bulkParsed.length>0){renderBulkPreviewTable();document.getElementById('bulk-preview').style.display='block';}
   }
   else render();
 }
@@ -836,29 +941,45 @@ function renderTodayShip(){
   }).join(''):'<tr><td colspan="7" class="empty">오늘 출고 내역 없음</td></tr>';
 }
 
+function highlight(text,kw){
+  if(!kw||!text)return escHtml(String(text||''));
+  var esc=escHtml(String(text));
+  return esc.replace(new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark style="background:#fff3cd;border-radius:2px;padding:0 1px">$1</mark>');
+}
 function renderLog(){
+  var kw=((document.getElementById('log-search')||{}).value||'').trim().toLowerCase();
   var sf=(document.getElementById('log-sauce')||{}).value||'';
   var tf=(document.getElementById('log-type')||{}).value||'';
   var df=(document.getElementById('log-date')||{}).value||'';
   var cf=(document.getElementById('log-client')||{}).value||'';
   var rows=state.logs.slice().reverse().filter(function(l){
-    return (!sf||l.name===sf)&&(!tf||l.type===tf)&&(!df||l.date===df)&&(!cf||l.client===cf);
+    if(sf&&l.name!==sf)return false;
+    if(tf&&l.type!==tf)return false;
+    if(df&&l.date!==df)return false;
+    if(cf&&l.client!==cf)return false;
+    if(kw){var hay=((l.name||'')+(l.client||'')+(l.brand||'')+(l.type||'')+(l.note||'')).toLowerCase(); if(hay.indexOf(kw)<0)return false;}
+    return true;
   });
+  var resEl=document.getElementById('log-search-result');
+  if(resEl){
+    if(kw||sf||tf||df||cf){resEl.style.display='block';resEl.textContent='검색 결과: '+rows.length+'건 / 전체 '+state.logs.length+'건';}
+    else resEl.style.display='none';
+  }
   var logTb=document.getElementById('log-table');
   logTb.innerHTML=rows.length?rows.map(function(l){
     var qc=l.qty>0?'color:#27ae60':l.qty<0?'color:#c0392b':'';
     var adjTypes=['폐기','불량반품','샘플사용','기타차감','기타추가'];
     var tc=l.type==='출고'?'badge-danger':l.type==='실사'?'badge-blue':adjTypes.indexOf(l.type)>=0?'badge-gray':'badge-ok';
     var tw=l.kg?fmtKg(Math.abs(l.qty)*l.kg):'-';
-    var clientCell=l.brand?'<span class="ctag">'+l.brand+'</span>'+(l.branch?' <span style="font-size:11px;color:#666">'+l.branch+'</span>':''):(l.client?'<span class="ctag">'+l.client+'</span>':'-');
-    return '<tr><td style="white-space:nowrap">'+l.date+'</td><td>'+l.time+'</td><td>'+l.name+'</td><td><span class="badge '+tc+'">'+l.type+'</span></td><td>'+clientCell+'</td><td style="'+qc+'">'+(l.qty>0?'+':'')+l.qty+'팩</td><td class="tw">'+tw+'</td><td>'+l.after+'팩</td><td style="color:#aaa">'+(l.note||'-')+'</td><td><button class="sm log-edit-btn" data-key="'+(l.key||'')+'">수정</button></td></tr>';
-  }).join(''):'<tr><td colspan="10" class="empty">이력 없음</td></tr>';
+    var clientCell=l.brand?'<span class="ctag">'+highlight(l.brand,kw)+'</span>'+(l.branch?' <span style="font-size:11px;color:#666">'+l.branch+'</span>':''):(l.client?'<span class="ctag">'+highlight(l.client,kw)+'</span>':'-');
+    return '<tr><td style="white-space:nowrap">'+l.date+'</td><td>'+l.time+'</td><td>'+highlight(l.name,kw)+'</td><td><span class="badge '+tc+'">'+l.type+'</span></td><td>'+clientCell+'</td><td style="'+qc+'">'+(l.qty>0?'+':'')+l.qty+'팩</td><td class="tw">'+tw+'</td><td>'+l.after+'팩</td><td style="color:#aaa">'+(l.note||'-')+'</td><td><button class="sm log-edit-btn" data-key="'+(l.key||'')+'">수정</button></td></tr>';
+  }).join(''):'<tr><td colspan="10" class="empty">'+(kw?'검색 결과 없음':'이력 없음')+'</td></tr>';
   logTb.querySelectorAll('.log-edit-btn').forEach(function(btn){
     btn.addEventListener('click',function(){openEditModal(this.dataset.key);});
   });
 }
 function clearLog(){
-  ['log-date','log-sauce','log-type','log-client'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['log-date','log-sauce','log-type','log-client','log-search'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   renderLog();
 }
 
@@ -2151,6 +2272,144 @@ function printInventorySheet(){
   setTimeout(function(){ w.print(); }, 500);
 }
 
+// ── 업무 플로우 ──
+var flowNow=new Date(), flowVY=flowNow.getFullYear(), flowVM=flowNow.getMonth();
+var flowSelDate=null, flowCurType='prod';
+var flowEvs={};
+
+function flowFk(y,m,d){var dt=new Date(y,m,d);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+function flowChM(d){flowVM+=d;if(flowVM>11){flowVM=0;flowVY++;}else if(flowVM<0){flowVM=11;flowVY--;}flowRender();}
+function flowGoToday(){flowVY=flowNow.getFullYear();flowVM=flowNow.getMonth();flowRender();flowSelDate=null;document.getElementById('fl-sel-label').textContent='날짜를 클릭하세요';document.getElementById('fl-sel-list').innerHTML='';document.getElementById('fl-sel-add-btn').style.display='none';}
+
+function flowRender(){
+  var mn=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('flow-month-lbl').textContent=flowVY+'년 '+mn[flowVM];
+  var grid=document.getElementById('flow-cal-grid'); if(!grid)return; grid.innerHTML='';
+  var first=new Date(flowVY,flowVM,1).getDay();
+  var last=new Date(flowVY,flowVM+1,0).getDate();
+  var todayStr=flowFk(flowNow.getFullYear(),flowNow.getMonth(),flowNow.getDate());
+  var todayMs=new Date(flowNow.getFullYear(),flowNow.getMonth(),flowNow.getDate()).getTime();
+  var mProd=0,mInit=0,mTotal=0,mSoon=0;
+
+  Object.keys(flowEvs).forEach(function(k){
+    var dt=new Date(k);
+    if(dt.getFullYear()===flowVY&&dt.getMonth()===flowVM){flowEvs[k].forEach(function(e){if(e.type==='prod')mProd++;if(e.type==='init')mInit++;mTotal++;});}
+    var diff=Math.round((new Date(k).getTime()-todayMs)/86400000);
+    if(diff>=0&&diff<=3)mSoon+=flowEvs[k].length;
+  });
+  document.getElementById('fl-m-prod').textContent=mProd;
+  document.getElementById('fl-m-init').textContent=mInit;
+  document.getElementById('fl-m-total').textContent=mTotal;
+  document.getElementById('fl-m-soon').textContent=mSoon;
+
+  for(var i=0;i<first;i++){var el=document.createElement('div');el.style.cssText='min-height:88px';grid.appendChild(el);}
+  for(var d=1;d<=last;d++){
+    var key=flowFk(flowVY,flowVM,d);
+    var dow=new Date(flowVY,flowVM,d).getDay();
+    var isToday=key===todayStr, isSel=key===flowSelDate;
+    var el=document.createElement('div');
+    el.style.cssText='min-height:88px;background:rgba(255,255,255,'+(isToday?'0.08':'0.04')+');border-radius:5px;padding:6px;cursor:pointer;border:'+(isSel?'1.5px solid #42a5f5':isToday?'1.5px solid #66bb6a':'1px solid rgba(255,255,255,0.06)')+';display:flex;flex-direction:column;transition:background 0.12s';
+    el.onmouseenter=function(){this.style.background='rgba(255,255,255,0.12)';};
+    el.onmouseleave=function(){this.style.background='rgba(255,255,255,'+(this===document.querySelector('[data-flow-sel]')?'0.1':'0.04')+')';;};
+    var cnt=flowEvs[key]?flowEvs[key].length:0;
+    var numColor=dow===0?'#ef9a9a':dow===6?'#90caf9':isToday?'#66bb6a':'#c8e6c9';
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
+      +'<span style="font-size:13px;color:'+numColor+';font-weight:'+(isToday?'500':'400')+'">'+d+'</span>'
+      +(cnt>0?'<span style="font-size:10px;background:rgba(255,255,255,0.12);color:#a5d6a7;border-radius:10px;padding:1px 5px">'+cnt+'</span>':'')
+      +'</div>';
+    if(flowEvs[key]){
+      flowEvs[key].slice(0,3).forEach(function(ev){
+        var b=document.createElement('div');
+        var colors={prod:'background:rgba(33,150,243,0.3);color:#90caf9;border-left:2px solid #2196f3',init:'background:rgba(239,83,80,0.3);color:#ef9a9a;border-left:2px solid #ef5350',memo:'background:rgba(156,39,176,0.25);color:#ce93d8;border-left:2px solid #9c27b0'};
+        b.style.cssText='font-size:10px;border-radius:3px;padding:2px 5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;'+colors[ev.type];
+        b.textContent=(ev.client?ev.client+' — ':'')+ev.title;
+        el.appendChild(b);
+      });
+      if(flowEvs[key].length>3){var m=document.createElement('div');m.style.cssText='font-size:10px;color:#81c784;margin-top:1px;padding-left:2px';m.textContent='+' +(flowEvs[key].length-3)+'개 더';el.appendChild(m);}
+    }
+    el.addEventListener('click',(function(k){return function(){flowClickDay(k);};})(key));
+    grid.appendChild(el);
+  }
+  flowRenderUpcoming();
+}
+
+function flowClickDay(key){
+  flowSelDate=key;
+  flowRender();
+  var d=new Date(key);
+  document.getElementById('fl-sel-label').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일';
+  var list=document.getElementById('fl-sel-list');list.innerHTML='';
+  document.getElementById('fl-sel-add-btn').style.display='block';
+  if(flowEvs[key]&&flowEvs[key].length){
+    flowEvs[key].forEach(function(ev,i){
+      var colors={prod:'border-color:#2196f3;background:rgba(33,150,243,0.08)',init:'border-color:#ef5350;background:rgba(239,83,80,0.08)',memo:'border-color:#9c27b0;background:rgba(156,39,176,0.08)'};
+      var el=document.createElement('div');
+      el.style.cssText='padding:7px 8px;border-radius:6px;margin-bottom:5px;border-left:3px solid;'+colors[ev.type];
+      el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+        +(ev.client?'<div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:2px">'+escHtml(ev.client)+'</div>':'')
+        +'<span style="font-size:10px;color:var(--color-text-secondary);cursor:pointer" onclick="flowDelEv(\''+key+'\','+i+')">✕</span></div>'
+        +'<div style="font-size:12px;color:var(--color-text-primary);font-weight:500">'+escHtml(ev.title)+'</div>'
+        +(ev.note?'<div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">'+escHtml(ev.note)+'</div>':'');
+      list.appendChild(el);
+    });
+  } else { list.innerHTML='<div style="font-size:12px;color:var(--color-text-secondary)">일정 없음</div>'; }
+}
+
+function flowDelEv(key,i){flowEvs[key].splice(i,1);if(!flowEvs[key].length)delete flowEvs[key];flowSave();flowClickDay(key);flowRender();}
+
+function flowRenderUpcoming(){
+  var list=document.getElementById('fl-upcoming-list');if(!list)return;list.innerHTML='';
+  var todayMs=new Date(flowNow.getFullYear(),flowNow.getMonth(),flowNow.getDate()).getTime();
+  var items=[];
+  Object.keys(flowEvs).forEach(function(k){
+    var diff=Math.round((new Date(k).getTime()-todayMs)/86400000);
+    if(diff>=0&&diff<=14)flowEvs[k].forEach(function(ev){items.push({k:k,diff:diff,ev:ev});});
+  });
+  items.sort(function(a,b){return a.diff-b.diff;});
+  if(!items.length){list.innerHTML='<div style="font-size:12px;color:var(--color-text-secondary)">없음</div>';return;}
+  items.forEach(function(it){
+    var dt=new Date(it.k);
+    var ddT=it.diff===0?'오늘':'D-'+it.diff;
+    var ddBg=it.diff===0?'#ef5350':it.diff<=1?'#ff7043':it.diff<=3?'#ffa726':'var(--color-background-tertiary)';
+    var ddColor=it.diff<=3?'#fff':'var(--color-text-secondary)';
+    var el=document.createElement('div');
+    el.style.cssText='padding:8px 10px;border-bottom:0.5px solid var(--color-border-tertiary)';
+    el.innerHTML='<div style="font-size:10px;color:var(--color-text-secondary)">'+(dt.getMonth()+1)+'월'+dt.getDate()+'일 <span style="display:inline-block;font-size:10px;font-weight:500;border-radius:10px;padding:1px 6px;margin-left:4px;background:'+ddBg+';color:'+ddColor+'">'+ddT+'</span></div>'
+      +'<div style="font-size:12px;color:var(--color-text-primary);margin-top:2px">'+(it.ev.client?it.ev.client+' ':'')+escHtml(it.ev.title)+'</div>';
+    list.appendChild(el);
+  });
+}
+
+function flowSelType(t){
+  flowCurType=t;
+  var styles={prod:'background:#e3f2fd;border:1px solid #2196f3;color:#1565c0',init:'background:#ffebee;border:1px solid #ef5350;color:#c62828',memo:'background:#f3e5f5;border:1px solid #9c27b0;color:#6a1b9a'};
+  var def='background:var(--color-background-secondary);border:1px solid var(--color-border-secondary);color:var(--color-text-secondary)';
+  ['prod','init','memo'].forEach(function(x){document.getElementById('fl-tb-'+x).style.cssText='flex:1;padding:7px;border-radius:6px;cursor:pointer;font-size:12px;text-align:center;'+(x===t?styles[x]:def);});
+}
+
+function flowOpenModal(key){
+  flowSelDate=key||flowSelDate;
+  document.getElementById('flow-modal-title').textContent=(flowSelDate?flowSelDate+' ':'')+'일정 추가';
+  document.getElementById('fl-p-date').value=flowSelDate||flowFk(flowNow.getFullYear(),flowNow.getMonth(),flowNow.getDate());
+  document.getElementById('fl-p-client').value='';
+  document.getElementById('fl-p-title').value='';
+  document.getElementById('fl-p-note').value='';
+  flowSelType('prod');
+  document.getElementById('flow-modal-bg').style.display='flex';
+}
+function flowCloseModal(){document.getElementById('flow-modal-bg').style.display='none';}
+function flowSaveEv(){
+  var dt=document.getElementById('fl-p-date').value;
+  var ttl=document.getElementById('fl-p-title').value.trim();
+  if(!dt||!ttl){alert('날짜와 내용을 입력해주세요.');return;}
+  if(!flowEvs[dt])flowEvs[dt]=[];
+  flowEvs[dt].push({type:flowCurType,client:document.getElementById('fl-p-client').value.trim(),title:ttl,note:document.getElementById('fl-p-note').value.trim()});
+  flowSelDate=dt;
+  flowSave();flowCloseModal();flowRender();flowClickDay(dt);
+}
+function flowSave(){try{localStorage.setItem('flowEvs',JSON.stringify(flowEvs));}catch(e){}}
+function flowLoad(){try{var s=localStorage.getItem('flowEvs');if(s)flowEvs=JSON.parse(s);}catch(e){}}
+
 window.addEventListener('load',function(){
   if(typeof firebase==='undefined'){showErr('Firebase 라이브러리 로드 실패. 인터넷 연결을 확인해주세요.');return;}
   try{
@@ -2167,6 +2426,8 @@ window.addEventListener('load',function(){
     document.getElementById('edit-qty').addEventListener('input',updateEditPreview);
     document.getElementById('edit-sauce').addEventListener('change',updateEditPreview);
     startAutoBackupTimer();
+    flowLoad();
+    flowRender();
   }catch(e){showErr('오류: '+e.message);}
 });
 
