@@ -2343,11 +2343,18 @@ function flowClickDay(key){
   if(flowEvs[key]&&flowEvs[key].length){
     flowEvs[key].forEach(function(ev,i){
       var colors={prod:'border-color:#2196f3;background:rgba(33,150,243,0.08)',init:'border-color:#ef5350;background:rgba(239,83,80,0.08)',memo:'border-color:#9c27b0;background:rgba(156,39,176,0.08)'};
+      var typeLabel={prod:'생산계획',init:'초도물량',memo:'메모'};
       var el=document.createElement('div');
       el.style.cssText='padding:7px 8px;border-radius:6px;margin-bottom:5px;border-left:3px solid;'+colors[ev.type];
-      el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-        +(ev.client?'<div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:2px">'+escHtml(ev.client)+'</div>':'')
-        +'<span style="font-size:10px;color:var(--color-text-secondary);cursor:pointer" onclick="flowDelEv(\''+key+'\','+i+')">✕</span></div>'
+      el.innerHTML=
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+          +'<span style="font-size:10px;font-weight:600;color:var(--color-text-secondary)">'+typeLabel[ev.type]+'</span>'
+          +'<div style="display:flex;gap:6px">'
+            +'<span style="font-size:10px;color:#2196f3;cursor:pointer;text-decoration:underline" onclick="flowEditEv(\''+key+'\','+i+')">수정</span>'
+            +'<span style="font-size:10px;color:var(--color-text-secondary);cursor:pointer" onclick="flowDelEv(\''+key+'\','+i+')">삭제</span>'
+          +'</div>'
+        +'</div>'
+        +(ev.client?'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">'+escHtml(ev.client)+'</div>':'')
         +'<div style="font-size:12px;color:var(--color-text-primary);font-weight:500">'+escHtml(ev.title)+'</div>'
         +(ev.note?'<div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">'+escHtml(ev.note)+'</div>':'');
       list.appendChild(el);
@@ -2387,8 +2394,24 @@ function flowSelType(t){
   ['prod','init','memo'].forEach(function(x){document.getElementById('fl-tb-'+x).style.cssText='flex:1;padding:7px;border-radius:6px;cursor:pointer;font-size:12px;text-align:center;'+(x===t?styles[x]:def);});
 }
 
+var flowEditIdx=null; // 수정 중인 인덱스 (null이면 신규 추가)
+
+function flowEditEv(key,i){
+  flowSelDate=key;
+  flowEditIdx=i;
+  var ev=flowEvs[key][i];
+  document.getElementById('flow-modal-title').textContent=key+' 일정 수정';
+  document.getElementById('fl-p-date').value=key;
+  document.getElementById('fl-p-client').value=ev.client||'';
+  document.getElementById('fl-p-title').value=ev.title||'';
+  document.getElementById('fl-p-note').value=ev.note||'';
+  flowSelType(ev.type||'prod');
+  document.getElementById('flow-modal-bg').style.display='flex';
+}
+
 function flowOpenModal(key){
   flowSelDate=key||flowSelDate;
+  flowEditIdx=null; // 신규 추가 모드
   document.getElementById('flow-modal-title').textContent=(flowSelDate?flowSelDate+' ':'')+'일정 추가';
   document.getElementById('fl-p-date').value=flowSelDate||flowFk(flowNow.getFullYear(),flowNow.getMonth(),flowNow.getDate());
   document.getElementById('fl-p-client').value='';
@@ -2397,13 +2420,29 @@ function flowOpenModal(key){
   flowSelType('prod');
   document.getElementById('flow-modal-bg').style.display='flex';
 }
-function flowCloseModal(){document.getElementById('flow-modal-bg').style.display='none';}
+function flowCloseModal(){document.getElementById('flow-modal-bg').style.display='none';flowEditIdx=null;}
 function flowSaveEv(){
   var dt=document.getElementById('fl-p-date').value;
   var ttl=document.getElementById('fl-p-title').value.trim();
   if(!dt||!ttl){alert('날짜와 내용을 입력해주세요.');return;}
-  if(!flowEvs[dt])flowEvs[dt]=[];
-  flowEvs[dt].push({type:flowCurType,client:document.getElementById('fl-p-client').value.trim(),title:ttl,note:document.getElementById('fl-p-note').value.trim()});
+  var evObj={type:flowCurType,client:document.getElementById('fl-p-client').value.trim(),title:ttl,note:document.getElementById('fl-p-note').value.trim()};
+
+  if(flowEditIdx!==null && flowSelDate && flowEvs[flowSelDate]){
+    // 수정 모드: 날짜가 바뀐 경우 기존 날짜에서 삭제 후 새 날짜에 추가
+    if(dt!==flowSelDate){
+      flowEvs[flowSelDate].splice(flowEditIdx,1);
+      if(!flowEvs[flowSelDate].length) delete flowEvs[flowSelDate];
+      if(!flowEvs[dt]) flowEvs[dt]=[];
+      flowEvs[dt].push(evObj);
+    } else {
+      flowEvs[flowSelDate][flowEditIdx]=evObj;
+    }
+  } else {
+    // 신규 추가
+    if(!flowEvs[dt]) flowEvs[dt]=[];
+    flowEvs[dt].push(evObj);
+  }
+
   flowSelDate=dt;
   flowSave();flowCloseModal();flowRender();flowClickDay(dt);
 }
